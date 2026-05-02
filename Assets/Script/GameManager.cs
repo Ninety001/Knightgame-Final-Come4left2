@@ -50,8 +50,8 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void GameOver()
+    public void GameOver()
     {
-        Debug.Log("Game Over!"); 
+        SceneManager.LoadScene("GameOver");
     }
 }

@@ -6,7 +6,7 @@ public class SceneLoader : MonoBehaviour
 
     public void LoadGame()
     {
-        SceneManager.LoadScene("MainScene");
+        SceneManager.LoadScene("Game");
     }
 
     // ฟังก์ชันกลับหน้าเมนูหลัก
