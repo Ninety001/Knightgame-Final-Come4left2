@@ -3,83 +3,100 @@ using UnityEngine;
 public class CannonController : MonoBehaviour
 {
     [Header("Cannon Setup")]
-    public Transform barrel;      // ลำกล้อง
-    public Transform shootPoint;  // จุดยิง (เหมือนปากกระบอก)
-    public Transform controlPoint; // จุดที่ผู้เล่นจะไปยืนล็อคตำแหน่ง
-    public GameObject ballPrefab; // Prefab ลูกปืนที่จะพุ่งออกไป
+    public Transform barrel;
+    public Transform shootPoint;
+    public Transform controlPoint;
+    public GameObject ballPrefab;
     public float rotateSpeed = 100f;
     public float fireForce = 20f;
 
     private float angle = 0f;
     private PlayerController currentPlayer;
 
+    // ระบบตรวจจับแบบใหม่ (ช่วยให้กด E ติดง่ายขึ้น)
+    private bool isPlayerNearby = false;
+    private PlayerController nearbyPlayer;
+
     void Update()
     {
-        // ทำงานเมื่อมีผู้เล่นคุมปืนอยู่เท่านั้น
+        // 1. เช็คการกด E ใน Update (แม่นยำกว่าใน TriggerStay)
+        if (isPlayerNearby && nearbyPlayer != null && Input.GetKeyDown(KeyCode.E))
+        {
+            HandleInteraction();
+        }
+
+        // 2. ระบบควบคุมปืนใหญ่ (ทำงานเมื่อมีคนคุม)
         if (currentPlayer != null && currentPlayer.isControllingCannon)
         {
-            // ล็อคตำแหน่งผู้เล่นให้ติดกับ Control Point
             currentPlayer.transform.position = controlPoint.position;
 
-            // 1. ระบบหมุนปืน (W/S) รอบแกน Z
             if (Input.GetKey(KeyCode.W)) angle += rotateSpeed * Time.deltaTime;
             else if (Input.GetKey(KeyCode.S)) angle -= rotateSpeed * Time.deltaTime;
 
-            angle = Mathf.Clamp(angle, -10f, 60f); // จำกัดมุมยิง
+            angle = Mathf.Clamp(angle, -10f, 60f);
             barrel.rotation = Quaternion.Euler(0, 0, angle);
 
-            // 2. ระบบยิง (Space)
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (Input.GetKeyDown(KeyCode.Space)) Fire();
+        }
+    }
+
+    void HandleInteraction()
+    {
+        // กรณีเป็นกองกระสุน
+        if (gameObject.CompareTag("AmmoStack"))
+        {
+            if (!nearbyPlayer.hasAmmo && !nearbyPlayer.isControllingCannon)
             {
-                Fire();
+                nearbyPlayer.SetAmmo(true);
+            }
+        }
+        // กรณีเป็นปืนใหญ่
+        else if (gameObject.CompareTag("Cannon"))
+        {
+            if (nearbyPlayer.isControllingCannon)
+            {
+                nearbyPlayer.isControllingCannon = false;
+                currentPlayer = null;
+            }
+            else if (nearbyPlayer.hasAmmo)
+            {
+                nearbyPlayer.SetAmmo(false);
+                nearbyPlayer.isControllingCannon = true;
+                currentPlayer = nearbyPlayer;
+
+                // ล็อคตำแหน่ง (เฉพาะปืนใหญ่ที่ต้องมี ControlPoint)
+                if (controlPoint != null)
+                    nearbyPlayer.transform.position = controlPoint.position;
             }
         }
     }
 
     void Fire()
     {
-        // สร้างลูกปืนและยิงออกไปตามแรง F = ma
         GameObject ball = Instantiate(ballPrefab, shootPoint.position, shootPoint.rotation);
-        Rigidbody2D ballRb = ball.GetComponent<Rigidbody2D>();
-        ballRb.AddForce(shootPoint.right * fireForce, ForceMode2D.Impulse);
+        ball.GetComponent<Rigidbody2D>().AddForce(shootPoint.right * fireForce, ForceMode2D.Impulse);
 
-        // ยิงเสร็จแล้วปล่อยการควบคุม
         currentPlayer.isControllingCannon = false;
         currentPlayer = null;
     }
 
-    private void OnTriggerStay2D(Collider2D other)
+    // เก็บค่าผู้เล่นเมื่อเดินเข้าเขต
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player") && Input.GetKeyDown(KeyCode.E))
+        if (other.CompareTag("Player"))
         {
-            PlayerController pc = other.GetComponent<PlayerController>();
+            isPlayerNearby = true;
+            nearbyPlayer = other.GetComponent<PlayerController>();
+        }
+    }
 
-            // กรณีชนกองกระสุน: หยิบกระสุน
-            if (gameObject.CompareTag("AmmoStack"))
-            {
-                if (!pc.hasAmmo && !pc.isControllingCannon)
-                {
-                    pc.SetAmmo(true);
-                }
-            }
-            // กรณีชนปืนใหญ่: โหลดกระสุน/เข้าคุม/ออกจากการคุม
-            else if (gameObject.CompareTag("Cannon"))
-            {
-                if (pc.isControllingCannon)
-                {
-                    pc.isControllingCannon = false;
-                    currentPlayer = null;
-                }
-                else if (pc.hasAmmo)
-                {
-                    pc.SetAmmo(false);
-                    pc.isControllingCannon = true;
-                    currentPlayer = pc;
-
-                    // วาร์ปผู้เล่นไปที่จุดประจำตำแหน่งทันที
-                    pc.transform.position = controlPoint.position;
-                }
-            }
+    // ล้างค่าเมื่อเดินออกจากเขต
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            isPlayerNearby = false;
+            nearbyPlayer = null;
         }
     }
 }

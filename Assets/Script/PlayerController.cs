@@ -2,8 +2,9 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    [Header("Movement Settings")]
     public float moveSpeed = 5f;
-    public GameObject ammoOnHead; // วงกลมบนหัว
+    public GameObject ammoOnHead;
 
     private Rigidbody2D rb;
     private SpriteRenderer sr;
@@ -17,12 +18,22 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         sr = GetComponent<SpriteRenderer>();
         rb.freezeRotation = true;
-        ammoOnHead.SetActive(false);
+
+        // ตั้งค่า Rigidbody ให้ตื่นตัวตลอดเวลาเพื่อการตรวจจับที่แม่นยำ
+        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+        rb.sleepMode = RigidbodySleepMode2D.NeverSleep;
+
+        if (ammoOnHead) ammoOnHead.SetActive(false);
     }
 
     void Update()
     {
-        if (isControllingCannon) { hInput = 0; return; }
+        if (isControllingCannon)
+        {
+            hInput = 0;
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
 
         hInput = 0;
         if (Input.GetKey(KeyCode.A)) { hInput = -1; sr.flipX = true; }
@@ -38,6 +49,6 @@ public class PlayerController : MonoBehaviour
     public void SetAmmo(bool state)
     {
         hasAmmo = state;
-        ammoOnHead.SetActive(state);
+        if (ammoOnHead) ammoOnHead.SetActive(state);
     }
 }
