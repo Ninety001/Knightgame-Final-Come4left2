@@ -1,0 +1,19 @@
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class SceneLoader : MonoBehaviour
+{
+
+    public void LoadGame()
+    {
+        SceneManager.LoadScene("MainScene");
+    }
+
+    // ฟังก์ชันกลับหน้าเมนูหลัก
+    public void LoadMainMenu()
+    {
+        SceneManager.LoadScene("MainMenu");
+    }
+
+}
+
